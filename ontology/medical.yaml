@@ -1,0 +1,68 @@
+# Ontology for the PubMed adaptation (Optional B). Same format as news.yaml, so
+# switching corpora is a file swap: compiled 1:1 into the Neo4j schema
+# (entity -> label, relation -> relationship type).
+#
+# Every type named in a relation's source/target must be defined under `entities`.
+# `extracted: false` marks a type the pipeline creates itself (one Document node per
+# Postgres row); the LLM is never asked to extract it. All other types default to true.
+entities:
+  Document:
+    descriptor: A source document from the corpus (one PubMed title + abstract).
+    extracted: false
+  Disease:
+    descriptor: >-
+      A disease, disorder, syndrome, or health condition
+      (type 2 diabetes, COPD, tuberculosis, major depressive disorder, retinopathy).
+  Gene:
+    descriptor: >-
+      A gene, protein, genetic variant, or molecular biomarker
+      (BRCA1, APOE e4, alpha-synuclein, HER2, interleukin-6).
+  Treatment:
+    descriptor: >-
+      A drug, therapy, procedure, or other intervention given to patients
+      (metformin, chemotherapy, deep brain stimulation, vaccination, exercise program).
+  Outcome:
+    descriptor: >-
+      A measured clinical result or study endpoint
+      (mortality, HbA1c level, progression-free survival, cognitive decline, readmission).
+
+relations:
+  treats:
+    source: Treatment
+    target: Disease
+    descriptor: The treatment is used for, or tested against, the disease.
+  targets:
+    source: Treatment
+    target: Gene
+    descriptor: The drug or therapy acts on this gene or protein (trastuzumab targets HER2).
+  affects:
+    source: Treatment
+    target: Outcome
+    descriptor: >-
+      The treatment was evaluated on this outcome and changed it (improved or worsened),
+      as reported in the abstract.
+  associatedWith:
+    source: [Gene, Disease, Outcome]
+    target: [Gene, Disease, Outcome]
+    descriptor: >-
+      The two are linked without a stated causal claim: a risk factor, biomarker,
+      predictor, correlation, mechanism, or comorbidity (APOE e4 associatedWith
+      Alzheimer disease; malignant pleural effusion associatedWith shorter survival).
+  causes:
+    source: [Disease, Gene, Treatment]
+    target: [Disease, Outcome]
+    descriptor: >-
+      Only when the abstract states causation in so many words (causes, leads to,
+      induces, results in): hypertension causes stroke; a drug causes an adverse event.
+      Associations, correlations, predictors, and risk factors are associatedWith, not
+      causes. A result reported as not significant supports no relation at all.
+  about:
+    source: Document
+    target: Disease
+    descriptor: >-
+      The disease the study is primarily about. Checkable against the abstract's
+      MeSH major topics stored in documents.meta.
+  mentions:
+    source: Document
+    target: [Disease, Gene, Treatment, Outcome]
+    descriptor: The document refers to this entity (used for every extracted entity).

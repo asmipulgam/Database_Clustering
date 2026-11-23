@@ -1,6 +1,13 @@
 # Minimal starter ontology for the 20 Newsgroups foundation.
 # Compiled 1:1 into the Neo4j schema: entity -> label, relation -> relationship type.
+#
+# Every type named in a relation's source/target must be defined under `entities`.
+# `extracted: false` marks a type the pipeline creates itself (one Document node per
+# Postgres row); the LLM is never asked to extract it. All other types default to true.
 entities:
+  Document:
+    descriptor: A source document from the corpus (one 20 Newsgroups post).
+    extracted: false
   Person:
     descriptor: An individual named in the text (author, official, public figure).
   Organization:
@@ -12,7 +19,9 @@ entities:
   Artifact:
     descriptor: A product, technology, or piece of software mentioned in the text.
   Topic:
-    descriptor: A subject or theme the document discusses, distinct from any named entity.
+    descriptor: >-
+      A subject or theme the document discusses, as a short noun phrase of 1-4 words
+      (key escrow, encryption policy), distinct from any named entity.
 
 relations:
   affiliatedWith:
@@ -20,17 +29,19 @@ relations:
     target: Organization
     descriptor: The person is a member of, works for, or represents the organization.
   locatedIn:
-    source: [Organization, Event]
+    source: [Organization, Event, Location]
     target: Location
-    descriptor: The organization or event is based in or takes place at the location.
+    descriptor: >-
+      The organization or event is based in or takes place at the location,
+      or the place lies within the larger location (Columbus locatedIn Ohio).
   participatesIn:
     source: [Person, Organization]
     target: Event
     descriptor: The person or organization takes part in the event.
   produces:
-    source: Organization
+    source: [Person, Organization]
     target: Artifact
-    descriptor: The organization makes, sells, or maintains the artifact.
+    descriptor: The person or organization makes, writes, sells, or maintains the artifact.
   about:
     source: Document
     target: Topic

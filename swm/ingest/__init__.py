@@ -136,9 +136,9 @@ def _entrez():
     return Entrez
 
 
-def _entrez_read(Entrez, handle):
+def _entrez_read(Entrez, handle, **kwargs):
     try:
-        return Entrez.read(handle)
+        return Entrez.read(handle, **kwargs)
     finally:
         handle.close()
 
